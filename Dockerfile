@@ -1,20 +1,24 @@
-FROM ubuntu:16.04
+FROM ruby:2.3.1-alpine
 
 MAINTAINER ismaail <contact@ismaail.com>
 
-RUN apt-get update \
-  && apt-get install -q -y \
-    libsqlite3-dev \
-    ruby2.3 \
-    ruby2.3-dev \
-    build-essential \
-  && gem install --no-ri --no-rdoc mailcatcher json \
-  && apt-get remove -y build-essential \
-  && apt-get autoremove -y \
-  && apt-get clean \
-  && rm -rf /var/lib/apt/lists
+RUN apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
+    make \
+    g++ \
+    sqlite-dev
+
+RUN echo http://dl-2.alpinelinux.org/alpine/edge/main/ >> /etc/apk/repositories \
+    && apk --no-cache add \
+    sqlite-libs \
+    ruby-dev
+
+# Install mailcatcher
+RUN gem install --no-ri --no-rdoc mailcatcher json
+
+# Cleanup
+RUN apk del .build-deps \
+    && rm -rf /var/cache/apk/*
 
 EXPOSE 1080 1025
 
 ENTRYPOINT ["mailcatcher", "--smtp-ip=0.0.0.0", "--http-ip=0.0.0.0", "--foreground"]
-
